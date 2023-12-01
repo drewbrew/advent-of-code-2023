@@ -37,8 +37,7 @@ def part2_alt(puzzle_input: str) -> int:
         "seven": 7,
         "eight": 8,
         "nine": 9,
-        "zero": 0,
-    } | {str(i): i for i in range(10)}
+    } | {str(i): i for i in range(1, 10)}
     regex = re.compile(rf'({"|".join(values)})')
     reversed_regex = re.compile(rf'({"|".join(i[::-1] for i in values)})')
     total = 0
@@ -73,8 +72,7 @@ def digits_in_line(line: str) -> list[int]:
         "seven": 7,
         "eight": 8,
         "nine": 9,
-        "zero": 0,
-    } | {str(i): i for i in range(10)}
+    } | {str(i): i for i in range(1, 10)}
     first_chars = {char[0] for char in values}
     digits = []
     for index, char in enumerate(line):
@@ -104,7 +102,10 @@ def main():
     assert part_2_result == 281, part_2_result
     part_2_alt_version = part2_alt(PART_2_TEST_INPUT)
     assert part_2_alt_version == 281, part_2_alt_version
-    print(part2(real_input))
+    part_2_answer = part2(real_input)
+    print(part_2_answer)
+    alt_version = part2_alt(real_input)
+    assert alt_version == part_2_answer, 'Regex version failed!'
 
 
 if __name__ == "__main__":
