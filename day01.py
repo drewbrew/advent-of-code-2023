@@ -105,7 +105,7 @@ def main():
     part_2_answer = part2(real_input)
     print(part_2_answer)
     alt_version = part2_alt(real_input)
-    assert alt_version == part_2_answer, 'Regex version failed!'
+    assert alt_version == part_2_answer, "Regex version failed!"
 
 
 if __name__ == "__main__":
