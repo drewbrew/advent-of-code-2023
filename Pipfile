@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 networkx = "*"
+intervaltree = "*"
 
 [dev-packages]
 ipython = "*"
