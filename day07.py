@@ -56,6 +56,9 @@ class Hand:
 
 def hand_rank(hand: str) -> int:
     """Rank the hand based on the rules of the game"""
+    # use a Counter() to count the variation of cards. In other words,
+    # we don't care whether the user has 4 aces or 4 twos, only that they have
+    # 4 of them
     c = Counter(hand)
     # print(hand, c, list(c.values()))
     value_list = sorted(c.values(), reverse=True)
