@@ -14,16 +14,16 @@ REAL_INPUT = Path("day07.txt").read_text()
 
 
 CARD_RANKS = {
-    char: value
-    for value, char in enumerate(
+    card: value
+    for value, card in enumerate(
         "23456789TJQKA",
         start=2,
     )
 }
 # for part 2, to balance jokers being wild, jokers count as low card
 CARD_RANKS_P2 = {
-    char: value
-    for value, char in enumerate(
+    card: value
+    for value, card in enumerate(
         "J23456789TQKA",
         start=1,
     )
@@ -36,7 +36,7 @@ class Hand:
         self.bid = int(bid)
         self.hand_rank = hand_rank(self.hand) if not part_2 else hand_rank_p2(self.hand)
         self.card_ranks = tuple(
-            (CARD_RANKS if not part_2 else CARD_RANKS_P2)[char] for char in self.hand
+            (CARD_RANKS if not part_2 else CARD_RANKS_P2)[card] for card in self.hand
         )
 
     def __lt__(self, other: Self) -> bool:
