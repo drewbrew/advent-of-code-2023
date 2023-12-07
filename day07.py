@@ -13,14 +13,6 @@ QQQJA 483"""
 REAL_INPUT = Path("day07.txt").read_text()
 
 
-# ranks:
-# 1. quints
-# 2. quads
-# 3. full house
-# 4. trips
-# 5. two pair
-# 6. one pair
-# 7. high card
 CARD_RANKS = {
     char: value
     for value, char in enumerate(
@@ -28,6 +20,7 @@ CARD_RANKS = {
         start=2,
     )
 }
+# for part 2, to balance jokers being wild, jokers count as low card
 CARD_RANKS_P2 = {
     char: value
     for value, char in enumerate(
@@ -47,15 +40,12 @@ class Hand:
         )
 
     def __lt__(self, other: Self) -> bool:
+        # do the minimum for sorting, implementing __lt__
         # print(self, other, "lt")
         if self.hand_rank < other.hand_rank:
             # print("hand rank wins")
             return True
-        elif self.hand_rank == other.hand_rank and self.card_ranks < other.card_ranks:
-            # print("card rank wins")
-            return True
-        # print("no")
-        return False
+        return self.hand_rank == other.hand_rank and self.card_ranks < other.card_ranks
 
     def __str__(self):
         return f"{self.hand} {self.bid} {self.hand_rank} {self.card_ranks}"
@@ -65,40 +55,48 @@ class Hand:
 
 
 def hand_rank(hand: str) -> int:
-    """Rank the hand from low to high for easy reversing"""
+    """Rank the hand based on the rules of the game"""
     c = Counter(hand)
     # print(hand, c, list(c.values()))
-    if list(c.values()) == [5]:
-        # print(hand, "quint")
-        return 7
-    if set(c.values()) == {4, 1}:
-        # print(hand, "quad")
-        return 6
-    if set(c.values()) == {3, 2}:
-        # print(hand, "full")
-        # full house
-        return 5
-    if set(c.values()) == {3, 1}:
-        # print(hand, "trips")
-        # trips
-        return 4
-    if sorted(c.values(), reverse=True) == [2, 2, 1]:
-        # two pair
-        # print(hand, "2p")
-        return 3
-    if set(c.values()) == {2, 1}:
-        # 1 pair
-        # print(hand, "1p")
-        return 2
-    # high card
-    # print(hand, "hc")
-    return 1
+    value_list = sorted(c.values(), reverse=True)
+    match value_list:
+        # ranks:
+        # 1. quints
+        # 2. quads
+        # 3. full house
+        # 4. trips
+        # 5. two pair
+        # 6. one pair
+        # 7. high card
+        case [5]:
+            # five of a kind
+            return 7
+        case [4, 1]:
+            # quads
+            return 6
+        case [3, 2]:
+            # full house
+            return 5
+        case [3, 1, 1]:
+            # trips
+            return 4
+        case [2, 2, 1]:
+            # two pair
+            return 3
+        case [2, 1, 1, 1]:
+            # one pair
+            return 2
+        case _:
+            # high card
+            return 1
 
 
 def hand_rank_p2(hand: str) -> int:
+    """Part 2: find the rank of the hand with jokers wild"""
     if "J" not in hand:
         return hand_rank(hand)
-    return max(hand_rank(hand.replace("J", card)) for card in "AKQT98765432")
+    replacements = "AKQT98765432"
+    return max(hand_rank(hand.replace("J", card)) for card in replacements)
 
 
 def part1(puzzle_input: str, part_2: bool = False) -> int:
