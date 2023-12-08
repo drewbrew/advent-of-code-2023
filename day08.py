@@ -1,3 +1,5 @@
+"""Day 8: Haunted Wasteland"""
+
 from itertools import cycle
 from math import lcm
 from pathlib import Path
@@ -72,6 +74,7 @@ def part2(puzzle_input: str) -> int:
             return lcm(*hits.values())
         new_locations = []
         movement = next(instructions)
+        steps_taken += 1
         for location in locations:
             left, right = directions[location]
 
@@ -80,15 +83,11 @@ def part2(puzzle_input: str) -> int:
             else:
                 location = right
             if location.endswith("Z"):
-                print(
-                    f"move {steps_taken + 1}: location "
-                    f"{len(new_locations)} is at {location}"
-                )
-                if len(new_locations) not in hits:
-                    hits[len(new_locations)] = steps_taken + 1
+                index = len(new_locations)
+                print(f"move {steps_taken}: location {index} is at {location}")
+                hits.setdefault(index, steps_taken)
             new_locations.append(location)
         locations = new_locations
-        steps_taken += 1
 
     return steps_taken
 
