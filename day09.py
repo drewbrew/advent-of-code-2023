@@ -23,22 +23,6 @@ def history_with_next_step(history: list[int]) -> list[int]:
     return history + [history[-1] + recursed[-1]]
 
 
-def history_with_previous_step(history: list[int]) -> list[int]:
-    """Find the previous value of a sequence using extrapolation"""
-    # print("a", history)
-    next_step = dxes(history)
-    # print("b", next_step)
-    if len(set(next_step)) == 1:
-        # print("done", history, history[-1], history[-2])
-        return [history[0] - (history[1] - history[0])] + history
-    recursed = history_with_previous_step(next_step)
-    # print("recursion result", recursed)
-    assert len(recursed) == len(history), (recursed, history)
-    end = [history[0] - recursed[0]] + history
-    # print("returning", end)
-    return end
-
-
 def dxes(history: list[int]) -> list[int]:
     """Keep working down the dx tree until we get all zeroes
     >>> dxes([0, 3, 6, 9, 12, 15])
@@ -51,20 +35,15 @@ def dxes(history: list[int]) -> list[int]:
     return [dx - x for (x, dx) in zip(history[:-1], history[1:])]
 
 
-def part1(puzzle_input: str) -> int:
+def part1(puzzle_input: str, part_2: bool = False) -> int:
     lines = []
     for line in puzzle_input.splitlines():
-        lines.append([int(num) for num in line.split()])
+        if part_2:
+            lines.append([int(num) for num in reversed(line.split())])
+        else:
+            lines.append([int(num) for num in line.split()])
     new_lines = [history_with_next_step(line) for line in lines]
     return sum(line[-1] for line in new_lines)
-
-
-def part2(puzzle_input: str) -> int:
-    lines = []
-    for line in puzzle_input.splitlines():
-        lines.append([int(num) for num in line.split()])
-    new_lines = [history_with_previous_step(line) for line in lines]
-    return sum(line[0] for line in new_lines)
 
 
 def main():
@@ -80,9 +59,9 @@ def main():
     part_1_result = part1(TEST_INPUT)
     assert part_1_result == 114, part_1_result
     print(part1(REAL_INPUT))
-    part_2_result = part2(TEST_INPUT)
+    part_2_result = part1(TEST_INPUT, True)
     assert part_2_result == 2, part_2_result
-    print(part2(REAL_INPUT))
+    print(part1(REAL_INPUT, True))
 
 
 if __name__ == "__main__":
