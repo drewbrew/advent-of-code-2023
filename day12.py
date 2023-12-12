@@ -1,4 +1,5 @@
 from pathlib import Path
+from functools import cache
 
 TEST_INPUT = """???.### 1,1,3
 .??..??...?##. 1,1,3
@@ -10,9 +11,7 @@ TEST_INPUT = """???.### 1,1,3
 REAL_INPUT = Path("day12.txt").read_text()
 
 
-def parse_input(
-    puzzle: str, part2: bool = False
-) -> list[tuple[list[bool | None], list[int]]]:
+def parse_input(puzzle: str, part2: bool = False) -> list[tuple[str, tuple[int]]]:
     output = []
     for line in puzzle.splitlines():
         options, combos = line.split()
@@ -20,28 +19,21 @@ def parse_input(
             combos = ",".join([combos, combos, combos, combos, combos])
             options = "?".join([options, options, options, options, options])
 
-        numbers = [int(i) for i in combos.split(",")]
-        survey = [
-            {
-                ".": False,
-                "#": True,
-                "?": None,
-            }[char]
-            for char in options
-        ]
-        output.append((survey, numbers))
+        numbers = tuple(int(i) for i in combos.split(","))
+        output.append((options, numbers))
     return output
 
 
-def valid_in_progress(survey: list[bool], combinations: list[int]) -> bool:
+@cache
+def valid_in_progress(survey: str, combinations: list[int]) -> bool:
     """Given a partially filled-in line, does it meet the survey conditions so far?"""
     found_results = []
     in_progress = False
     current_tally = 0
     for spot in survey:
-        if spot is None:
+        if spot == "?":
             raise ValueError("You forgot to sub out")
-        if spot:
+        if spot == "#":
             in_progress = True
             current_tally += 1
         elif in_progress:
@@ -51,18 +43,18 @@ def valid_in_progress(survey: list[bool], combinations: list[int]) -> bool:
             current_tally = 0
     # don't save the last one this time because we might still be in progress!
     # print("---", survey, found_results, combinations)
-    return found_results == combinations[: len(found_results)]
+    return found_results == list(combinations[: len(found_results)])
 
 
-def line_meets_survey(survey: list[bool], combinations: list[int]) -> bool:
+def line_meets_survey(survey: list[bool], combinations: tuple[int]) -> bool:
     """Given a filled-in line, does it meet the survey conditions?"""
     found_results = []
     in_progress = False
     current_tally = 0
     for spot in survey:
-        if spot is None:
+        if spot == "?":
             raise ValueError("You forgot to sub out")
-        if spot:
+        if spot == "#":
             in_progress = True
             current_tally += 1
         elif in_progress:
@@ -73,18 +65,17 @@ def line_meets_survey(survey: list[bool], combinations: list[int]) -> bool:
     if in_progress:
         found_results.append(current_tally)
     # print("---", survey, found_results, combinations)
-    return found_results == combinations
+    return found_results == list(combinations)
 
 
-def valid_combos(survey: list[bool | None], combinations: list[int]) -> int:
+def valid_combos(survey: str, combinations: tuple[int]) -> int:
     """How many valid combinations fit the survey pattern?"""
-    attempts = [[]]
+    attempts = [""]
     for item in survey:
-        # print(item, attempts)
-        if item is not None:
-            attempts = [i + [item] for i in attempts]
+        if item != "?":
+            attempts = [i + item for i in attempts]
         else:
-            attempts = [i + [True] for i in attempts] + [i + [False] for i in attempts]
+            attempts = [i + "#" for i in attempts] + [i + "." for i in attempts]
         # prune ones that are definitely invalid
         attempts = [
             attempt for attempt in attempts if valid_in_progress(attempt, combinations)
@@ -117,9 +108,6 @@ def part2(puzzle: str) -> int:
 
 
 def main():
-    assert (
-        valid_combos([None, None, None, False, True, True, True], [1, 1, 3]) == 1
-    ), valid_combos([None, None, None, False, True, True, True], [1, 1, 3])
     part_1_result = part1(TEST_INPUT)
     assert part_1_result == 21, part_1_result
     print("p1", part1(REAL_INPUT))
