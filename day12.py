@@ -1,5 +1,4 @@
 from pathlib import Path
-from functools import cache
 
 TEST_INPUT = """???.### 1,1,3
 .??..??...?##. 1,1,3
@@ -24,7 +23,6 @@ def parse_input(puzzle: str, part2: bool = False) -> list[tuple[str, tuple[int]]
     return output
 
 
-@cache
 def valid_in_progress(survey: str, combinations: list[int]) -> bool:
     """Given a partially filled-in line, does it meet the survey conditions so far?"""
     found_results = []
@@ -76,10 +74,13 @@ def valid_combos(survey: str, combinations: tuple[int]) -> int:
             attempts = [i + item for i in attempts]
         else:
             attempts = [i + "#" for i in attempts] + [i + "." for i in attempts]
-        # prune ones that are definitely invalid
-        attempts = [
-            attempt for attempt in attempts if valid_in_progress(attempt, combinations)
-        ]
+        if item == ".":
+            # prune ones that are definitely invalid
+            attempts = [
+                attempt
+                for attempt in attempts
+                if valid_in_progress(attempt, combinations)
+            ]
     print(survey, combinations, len(attempts))
     # print(combinations, survey, "\n".join(str(i) for i in attempts))
     return sum(
