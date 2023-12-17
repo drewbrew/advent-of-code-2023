@@ -1,7 +1,6 @@
 """Day 17: don't go chasing lavafalls"""
 
 from pathlib import Path
-from collections import deque
 import heapq
 
 TEST_INPUT = """2413432311323
@@ -135,14 +134,6 @@ def part2(puzzle: str) -> int:
         if start == dest:
             # print("I made it!", last_bearings, start)
             return total_cost
-        try:
-            # have we been here for cheaper?
-            lowest_costs[(start, tuple(last_bearings[-10:]))]
-        except KeyError:
-            lowest_costs[(start, tuple(last_bearings[-10:]))] = total_cost
-        else:
-            # we already have
-            continue
         valid_turns = [(1, 0), (-1, 0), (0, 1), (0, -1)]
         try:
             last_x, last_y = last_bearings[-1]
@@ -157,13 +148,21 @@ def part2(puzzle: str) -> int:
         except IndexError:
             # first turn
             assert total_cost == 0
+        if last_bearings and set(last_bearings[-10:]) == {last_bearings[-1]}:
+            valid_turns.remove(last_bearings[-1])
         # print(valid_turns)
+        try:
+            # have we been here for cheaper?
+            lowest_costs[(start, tuple(sorted(valid_turns)))]
+        except KeyError:
+            lowest_costs[(start, tuple(sorted(valid_turns)))] = total_cost
+        else:
+            # we already have
+            continue
         x, y = start
         for dx, dy in valid_turns:
-            if last_bearings[-10:] == [
-                (dx, dy) for _ in range(10)
-            ]:
-                print(f'skipping {dx, dy}')
+            if last_bearings[-10:] == [(dx, dy) for _ in range(10)]:
+                print(f"skipping {dx, dy}")
                 continue
             try:
                 heapq.heappush(
