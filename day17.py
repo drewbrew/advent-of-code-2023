@@ -1,5 +1,6 @@
 """Day 17: don't go chasing lavafalls"""
 
+from time import perf_counter
 from pathlib import Path
 import heapq
 
@@ -17,6 +18,12 @@ TEST_INPUT = """2413432311323
 2546548887735
 4322674655533"""
 
+PART_2_TEST_INPUT = """111111111111
+999999999991
+999999999991
+999999999991
+999999999991"""
+
 REAL_INPUT = Path("day17.txt").read_text()
 
 
@@ -32,7 +39,6 @@ def part1(puzzle: str) -> int:
     """Find the path with the lowest cost with the caveat that you can't go straight more than 3x"""
     start = (0, 0)
     grid = parse_input(puzzle)
-    bearing = (1, 0)
     dest = max(grid)
     max_x, max_y = dest
     assert max_x == max_y  # making this a square
@@ -108,14 +114,25 @@ def part1(puzzle: str) -> int:
     raise ValueError("Never made it!")
 
 
+def must_go_straight(path: list[tuple[int, int]]) -> bool:
+    """Must we keep going straight?"""
+    if len(path) < 4:
+        return True
+    last_seen = path[-1]
+    time_in_direction = 1
+    for step in reversed(path[:-1]):
+        if step == last_seen:
+            time_in_direction += 1
+        else:
+            break
+    return time_in_direction < 4
+
+
 def part2(puzzle: str) -> int:
     """Find the path with the lowest cost with the caveat that you can't go straight more than 10x"""
     start = (0, 0)
     grid = parse_input(puzzle)
-    bearing = (1, 0)
     dest = max(grid)
-    max_x, max_y = dest
-    assert max_x == max_y  # making this a square
     # print(dest)
     # so, our conditions that we need to track:
     # 1. total cost
@@ -130,13 +147,27 @@ def part2(puzzle: str) -> int:
     lowest_costs = {}
     while paths:
         total_cost, start, last_bearings = heapq.heappop(paths)
-        print(total_cost, start, last_bearings)
+        print(total_cost, start, len(paths), " " * 10, end="\r")
         if start == dest:
-            # print("I made it!", last_bearings, start)
+            print("")
+            if must_go_straight(last_bearings):
+                print("false positive after", total_cost)
+                continue
+            print("I made it!", total_cost)
             return total_cost
-        valid_turns = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+        been_here_lookup = (start, tuple(last_bearings[-10:]))
         try:
+            # have we been here for cheaper?
+            lowest_costs[been_here_lookup]
+        except KeyError:
+            lowest_costs[been_here_lookup] = total_cost
+        else:
+            # we already have
+            continue
+        valid_turns = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+        if last_bearings:
             last_x, last_y = last_bearings[-1]
+            # print(f"{last_x=}, {last_y=}")
             # can't go backwards
             valid_turns.remove(
                 (
@@ -144,26 +175,18 @@ def part2(puzzle: str) -> int:
                     -last_y if last_y else 0,
                 )
             )
-            # print(f'removed {(-last_x if last_x else 0, -last_y if last_y else 0)}')
-        except IndexError:
-            # first turn
-            assert total_cost == 0
-        if last_bearings and set(last_bearings[-10:]) == {last_bearings[-1]}:
-            valid_turns.remove(last_bearings[-1])
+            if must_go_straight(last_bearings):
+                # print("must go straight")
+                # must go straiight at least 4x to start
+                valid_turns = [last_bearings[-1]]
+            elif len(last_bearings) >= 10 and set(last_bearings[-10:]) == {
+                last_bearings[-1]
+            }:
+                # print("must turn")
+                valid_turns.remove(last_bearings[-1])
         # print(valid_turns)
-        try:
-            # have we been here for cheaper?
-            lowest_costs[(start, tuple(sorted(valid_turns)))]
-        except KeyError:
-            lowest_costs[(start, tuple(sorted(valid_turns)))] = total_cost
-        else:
-            # we already have
-            continue
         x, y = start
         for dx, dy in valid_turns:
-            if last_bearings[-10:] == [(dx, dy) for _ in range(10)]:
-                print(f"skipping {dx, dy}")
-                continue
             try:
                 heapq.heappush(
                     paths,
@@ -186,12 +209,27 @@ def part2(puzzle: str) -> int:
 
 
 def main():
-    # part_1_result = part1(TEST_INPUT)
-    # assert part_1_result == 102, part_1_result
-    # print(part1(REAL_INPUT))
+    start = perf_counter()
+    part_1_result = part1(TEST_INPUT)
+    after_test_1 = perf_counter()
+    assert part_1_result == 102, part_1_result
+    before_1 = perf_counter()
+    print(part1(REAL_INPUT))
+    after_1 = perf_counter()
     part_2_result = part2(TEST_INPUT)
+    after_test_2 = perf_counter()
     assert part_2_result == 94, part_2_result
+    before_test_2a = perf_counter()
+    part_2_other_test = part2(PART_2_TEST_INPUT)
+    after_test_2a = perf_counter()
+    assert part_2_other_test == 71, part_2_other_test
+    before_2 = perf_counter()
     print(part2(REAL_INPUT))
+    after_2 = perf_counter()
+    print(f"part 1 test: {after_test_1 - start}")
+    print(f"part 1 real: {after_1 - before_1}")
+    print(f"part 2 tests: {after_test_2 - after_1}, {after_test_2a - before_test_2a}")
+    print(f"part 2 real: {after_2 - before_2}")
 
 
 if __name__ == "__main__":
