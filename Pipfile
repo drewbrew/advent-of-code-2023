@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 networkx = "*"
 intervaltree = "*"
+numpy = "*"
 
 [dev-packages]
 ipython = "*"
