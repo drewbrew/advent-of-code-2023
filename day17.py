@@ -1,5 +1,5 @@
 """Day 17: don't go chasing lavafalls"""
-
+from functools import cache
 from time import perf_counter
 from pathlib import Path
 import heapq
@@ -114,7 +114,8 @@ def part1(puzzle: str) -> int:
     raise ValueError("Never made it!")
 
 
-def must_go_straight(path: list[tuple[int, int]]) -> bool:
+@cache
+def must_go_straight(path: tuple[tuple[int, int]]) -> bool:
     """Must we keep going straight?"""
     if len(path) < 4:
         return True
@@ -150,7 +151,7 @@ def part2(puzzle: str) -> int:
         print(total_cost, start, len(paths), " " * 10, end="\r")
         if start == dest:
             print("")
-            if must_go_straight(last_bearings):
+            if must_go_straight(tuple(last_bearings)):
                 print("false positive after", total_cost)
                 continue
             print("I made it!", total_cost)
@@ -175,7 +176,7 @@ def part2(puzzle: str) -> int:
                     -last_y if last_y else 0,
                 )
             )
-            if must_go_straight(last_bearings):
+            if must_go_straight(tuple((last_bearings))):
                 # print("must go straight")
                 # must go straiight at least 4x to start
                 valid_turns = [last_bearings[-1]]
