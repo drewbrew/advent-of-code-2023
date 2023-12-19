@@ -1,7 +1,9 @@
 """day 19: aplenty"""
-from itertools import combinations_with_replacement
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from dataclasses import dataclass
+
+from intervaltree import Interval, IntervalTree
 
 TEST_INPUT = """px{a<2006:qkq,m>2090:A,rfg}
 pv{a>1716:R,A}
@@ -22,12 +24,6 @@ hdj{m>838:A,pv}
 {x=2127,m=1623,a=2188,s=1013}"""
 
 REAL_INPUT = Path("day19.txt").read_text()
-
-from celery import Celery
-
-import day19_generated_test as day19_generated
-
-app = Celery("day19", broker="redis://localhost", backend="redis://localhost")
 
 
 @dataclass
@@ -81,6 +77,32 @@ class Workflow:
             else:
                 output.append(f"        return {destination}(part)")
         return "\n".join(output)
+
+    @property
+    def boundaries(self) -> dict[str, list[int]]:
+        """find all the decision points in this workflow"""
+        result = {
+            "x": [],
+            "m": [],
+            "a": [],
+            "s": [],
+        }
+        for instruction in self.conditions:
+            # print('instruction', instruction)
+            if ":" not in instruction:
+                continue
+            condition, destination = instruction.split(":")
+            if "<" in condition:
+                attr, amount = condition.split("<")
+                amount = int(amount)
+                result[attr].append(amount)
+            elif ">" in condition:
+                attr, amount = condition.split(">")
+                amount = int(amount)
+                result[attr].append(amount)
+            else:
+                raise ValueError(f"unknown instruction {instruction}")
+        return {key: sorted(val) for key, val in result.items()}
 
     def run_through_workflow(self, part: Part) -> str:
         """Run the part through the workflow
@@ -163,39 +185,89 @@ def part1(puzzle: str) -> int:
 def part2(puzzle: str) -> int:
     """How many possible workflows can be accepted?"""
     workflows, _ = parse_input(puzzle)
-    if puzzle == TEST_INPUT:
-        Path("day19_generated_test.py").write_text(
-            "\n\n".join(flow.to_python() for flow in workflows)
-        )
-    else:
-        Path("day19_generated.py").write_text(
-            "\n\n".join(flow.to_python() for flow in workflows)
-        )
-    task = do_part_2.chunks(
-        combinations_with_replacement(range(1, 4001), 3),
-        100,
-    ).apply_async()
-    print("waiting")
-    result = task.get()
+
     accepted = 0
-    for line in result:
-        accepted += sum(line)
+    intervals = {
+        "x": IntervalTree([Interval(1, 4001)]),
+        "m": IntervalTree([Interval(1, 4001)]),
+        "a": IntervalTree([Interval(1, 4001)]),
+        "s": IntervalTree([Interval(1, 4001)]),
+    }
+    for workflow in workflows:
+        boundaries = workflow.boundaries
+        for attr, interval in intervals.items():
+            for boundary in boundaries[attr]:
+                interval.slice(boundary)
+                interval.slice(boundary + 1)
+    # print(intervals)
+    executor = ThreadPoolExecutor()
+    async_results = [
+        executor.submit(
+            do_part_2,
+            x_interval.begin,
+            x_interval.end,
+            m_interval.begin,
+            m_interval.end,
+            a_interval.begin,
+            a_interval.end,
+            intervals['s'],
+            workflows,
+        )
+        for x_interval in intervals["x"]
+        for m_interval in intervals["m"]
+        for a_interval in intervals["a"]
+    ]
+    print("waiting")
+
+    accepted += sum(result.result() for result in async_results)
     return accepted
 
 
-@app.task
-def do_part_2(x: int, m: int, a: int, test: bool = False) -> int:
-    """do part 2 for a batch of 1000"""
-    # print(f'{x=},{m=},{a=}')
-    return sum(day19_generated.in_(Part(x, m, a, s)) == "A" for s in range(1, 4001))
+def do_part_2(
+    x_min,
+    x_max,
+    m_min,
+    m_max,
+    a_min,
+    a_max,
+    s_intervals,
+    workflows,
+) -> int:
+    accepted = 0
+    for interval in s_intervals:
+        s_min = interval.begin
+        s_max = interval.end
+        part = Part(
+            x=x_min,
+            m=m_min,
+            a=a_min,
+            s=s_min,
+        )
+        flows = {flow.name: flow for flow in workflows}
+        flow = flows["in"]
+        flow_name = flow.name
+        while True:
+            flow_name = flow.run_through_workflow(part)
+
+            # print(flow_name)
+            try:
+                flow = flows[flow_name]
+            except KeyError:
+                break
+        if flow_name == "A":
+            interval_size = (
+                (x_max - x_min) * (m_max - m_min) * (a_max - a_min) * (s_max - s_min)
+            )
+            accepted +=  interval_size
+    return accepted
 
 
 def main():
     part_1_score = part1(TEST_INPUT)
     assert part_1_score == 19114, part_1_score
     print(part1(REAL_INPUT))
-    # part_2_score = part2(TEST_INPUT)
-    # assert part_2_score == 167409079868000, part_2_score
+    part_2_score = part2(TEST_INPUT)
+    assert part_2_score == 167409079868000, part_2_score
     print("part 2: go")
     print(part2(REAL_INPUT))
 
