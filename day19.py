@@ -1,5 +1,4 @@
 """day 19: aplenty"""
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -200,26 +199,24 @@ def part2(puzzle: str) -> int:
                 interval.slice(boundary)
                 interval.slice(boundary + 1)
     # print(intervals)
-    executor = ThreadPoolExecutor()
-    async_results = [
-        executor.submit(
-            do_part_2,
+
+    print("waiting")
+
+    accepted = sum(
+        do_part_2(
             x_interval.begin,
             x_interval.end,
             m_interval.begin,
             m_interval.end,
             a_interval.begin,
             a_interval.end,
-            intervals['s'],
+            intervals["s"],
             workflows,
         )
         for x_interval in intervals["x"]
         for m_interval in intervals["m"]
         for a_interval in intervals["a"]
-    ]
-    print("waiting")
-
-    accepted += sum(result.result() for result in async_results)
+    )
     return accepted
 
 
@@ -258,7 +255,7 @@ def do_part_2(
             interval_size = (
                 (x_max - x_min) * (m_max - m_min) * (a_max - a_min) * (s_max - s_min)
             )
-            accepted +=  interval_size
+            accepted += interval_size
     return accepted
 
 
