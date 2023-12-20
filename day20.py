@@ -202,7 +202,19 @@ def main():
     # this helped me see what was going on
     # output = ["digraph {"]
     # for line in REAL_INPUT.splitlines():
-    #     output.append(" " * 4 + line)
+    #     output.append(
+    #         " " * 4
+    #         + (
+    #             line
+    #             if not line.startswith(
+    #                 (
+    #                     "%",
+    #                     "&",
+    #                 )
+    #             )
+    #             else line[1:]
+    #         )
+    #     )
     # output.append("}")
     # Path("day20-viz.txt").write_text("\n".join(output))
     print(part1(REAL_INPUT))
