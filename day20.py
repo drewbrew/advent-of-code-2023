@@ -1,6 +1,7 @@
 from pathlib import Path
 from enum import Enum
 from collections import deque
+from math import lcm
 
 REAL_INPUT = Path("day20.txt").read_text()
 
@@ -147,6 +148,10 @@ def part2(puzzle: str) -> int:
     for module in modules.values():
         for output in module.outputs:
             sources[output].append(module.name)
+    assert len(sources["rx"]) == 1
+    # we want to track when we get a high pulse from any of the inputs to
+    # the sole input that feeds rx
+    watched = {source: 0 for source in sources[sources["rx"][0]]}
     for module in modules.values():
         if isinstance(module, Conjunction):
             module.inputs = {source: False for source in sources[module.name]}
@@ -154,7 +159,12 @@ def part2(puzzle: str) -> int:
     try:
         while True:
             if not turns % 10000:
-                print("---", turns, end="\r")
+                print("---", turns, watched, end="\r")
+            # if we've seen a high pulse from all our inputs, the answer
+            # is the LCM of all the turns on which the input has been triggered
+            if all(watched.values()):
+                print(watched)
+                return lcm(*watched.values())
             # time to blast off until rx turns on
             queue = deque([(modules["button"], False, "hand")])
             turns += 1
@@ -164,6 +174,9 @@ def part2(puzzle: str) -> int:
                 output = mod.receive_pulse(value=incoming, source=source)
                 # print(mod, incoming, source, mod.outputs)
                 if output is not None:
+                    if output and mod.name in watched and not watched[mod.name]:
+                        # this is one of our key inputs
+                        watched[mod.name] = turns
                     for dest in mod.outputs:
                         # print(
                         #     mod.name,
@@ -173,8 +186,8 @@ def part2(puzzle: str) -> int:
                         try:
                             queue.append((modules[dest], output, mod.name))
                         except KeyError:
-                            if dest in ["output", "rx"]:
-                                # I'm sure this will come up in part 2
+                            if dest == "output":
+                                # surprisingly this didn't turn up in part 2
                                 pass
                             else:
                                 raise
@@ -186,6 +199,12 @@ def part2(puzzle: str) -> int:
 def main():
     part_1_result = part1(TEST_INPUT)
     assert part_1_result == 4250 * 2750, part_1_result
+    # this helped me see what was going on
+    # output = ["digraph {"]
+    # for line in REAL_INPUT.splitlines():
+    #     output.append(" " * 4 + line)
+    # output.append("}")
+    # Path("day20-viz.txt").write_text("\n".join(output))
     print(part1(REAL_INPUT))
     print(part2(REAL_INPUT))
 
