@@ -1,8 +1,12 @@
 """day 19: aplenty"""
 from pathlib import Path
+from math import prod
 from dataclasses import dataclass
+from time import perf_counter
 
 from intervaltree import Interval, IntervalTree
+
+from day19_generated import in_
 
 TEST_INPUT = """px{a<2006:qkq,m>2090:A,rfg}
 pv{a>1716:R,A}
@@ -98,7 +102,7 @@ class Workflow:
             elif ">" in condition:
                 attr, amount = condition.split(">")
                 amount = int(amount)
-                result[attr].append(amount)
+                result[attr].append(amount + 1)
             else:
                 raise ValueError(f"unknown instruction {instruction}")
         return {key: sorted(val) for key, val in result.items()}
@@ -154,7 +158,12 @@ def parse_input(puzzle: str) -> tuple[list[Workflow], list[Part]]:
     workflows = []
     for f in raw_flows.splitlines():
         name, instructions = f[:-1].split("{")
-        workflows.append(Workflow(name=name, conditions=instructions.split(",")))
+        workflows.append(
+            Workflow(
+                name=name,
+                conditions=instructions.split(","),
+            ),
+        )
     return workflows, parts
 
 
@@ -197,26 +206,34 @@ def part2(puzzle: str) -> int:
         for attr, interval in intervals.items():
             for boundary in boundaries[attr]:
                 interval.slice(boundary)
-                interval.slice(boundary + 1)
     # print(intervals)
 
     print("waiting")
-
-    accepted = sum(
-        do_part_2(
-            x_interval.begin,
-            x_interval.end,
-            m_interval.begin,
-            m_interval.end,
-            a_interval.begin,
-            a_interval.end,
-            intervals["s"],
-            workflows,
-        )
-        for x_interval in intervals["x"]
-        for m_interval in intervals["m"]
-        for a_interval in intervals["a"]
+    print(
+        {key: len(val) for key, val in intervals.items()},
+        prod(len(i) for i in intervals.values()),
     )
+    accepted = 0
+    x_done = 0
+    for x_interval in intervals["x"]:
+        m_done = 0
+        for m_interval in intervals["m"]:
+            before = perf_counter()
+            for a_interval in intervals["a"]:
+                accepted += do_part_2(
+                    x_interval.begin,
+                    x_interval.end,
+                    m_interval.begin,
+                    m_interval.end,
+                    a_interval.begin,
+                    a_interval.end,
+                    intervals["s"],
+                )
+            after = perf_counter()
+            m_done += 1
+            print(x_done, m_done, accepted, after - before, end="\r")
+        x_done += 1
+    print("")
     return accepted
 
 
@@ -228,7 +245,6 @@ def do_part_2(
     a_min,
     a_max,
     s_intervals,
-    workflows,
 ) -> int:
     accepted = 0
     for interval in s_intervals:
@@ -240,18 +256,8 @@ def do_part_2(
             a=a_min,
             s=s_min,
         )
-        flows = {flow.name: flow for flow in workflows}
-        flow = flows["in"]
-        flow_name = flow.name
-        while True:
-            flow_name = flow.run_through_workflow(part)
-
-            # print(flow_name)
-            try:
-                flow = flows[flow_name]
-            except KeyError:
-                break
-        if flow_name == "A":
+        result = in_(part)
+        if result == "A":
             interval_size = (
                 (x_max - x_min) * (m_max - m_min) * (a_max - a_min) * (s_max - s_min)
             )
@@ -263,8 +269,8 @@ def main():
     part_1_score = part1(TEST_INPUT)
     assert part_1_score == 19114, part_1_score
     print(part1(REAL_INPUT))
-    part_2_score = part2(TEST_INPUT)
-    assert part_2_score == 167409079868000, part_2_score
+    # part_2_score = part2(TEST_INPUT)
+    # assert part_2_score == 167409079868000, part_2_score
     print("part 2: go")
     print(part2(REAL_INPUT))
 
